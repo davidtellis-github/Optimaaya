@@ -1,0 +1,63 @@
+/* ---------- Work (directly below the hero) ---------- */
+.work {
+  position: relative;
+  z-index: 1; /* below the hero (z 2) so its text and buttons sit on top of the lens */
+  padding-top: calc(var(--space) * 2);
+  background: transparent;
+}
+
+.work-header {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-columns), 1fr);
+  column-gap: var(--grid-gutter);
+  padding-inline: var(--grid-margin);
+  text-align: center;
+}
+.work-header > * { grid-column: 3 / 11; }
+
+.work-eyebrow {
+  margin: 0;
+  font-size: 11.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.work-title {
+  margin: var(--space) 0 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(32px, 4.4vw, 60px);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.work-title em {
+  font-style: normal;
+  color: var(--accent-ink);
+}
+
+.work-lede {
+  margin: var(--space) 0 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.work-carousel {
+  /* Transparent canvas tall enough for the whole (large) lens, pulled up so the
+     glass stretches over the hero. Panels stay 480px, centred 240px below the
+     section top (850px canvas half-height - 610px pull-up). */
+  height: calc(var(--space) * 85); /* 1700px */
+  margin-top: calc(var(--space) * -30.5); /* -610px */
+}
+
+@media (max-width: 900px) {
+  .work { padding-top: calc(var(--space) * 4); }
+  .work-header > * { grid-column: 1 / -1; }
+  .work-carousel {
+    height: calc(var(--space) * 32);
+    margin-top: calc(var(--space) * -6);
+  }
+}
