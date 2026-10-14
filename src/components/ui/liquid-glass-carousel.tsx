@@ -35,14 +35,6 @@ export interface LiquidGlassCarouselProps {
   fullWidthLens?: boolean;
   /** Draw the lens's white glow and inner shading over the images. */
   imageOverlay?: boolean;
-  /** Multiplies the lens size on both axes (1 = default). */
-  lensScale?: number;
-  /** Max share of the container height a panel may use (0.52 = default). */
-  panelFill?: number;
-  /** Render without a background so the lens can overlap surrounding content. */
-  transparent?: boolean;
-  /** Place the title/counter this many px above/below the panels instead of at the container edges. */
-  labelGap?: number;
   className?: string;
   style?: CSSProperties;
   onActiveChange?: (index: number) => void;
@@ -90,7 +82,7 @@ const LENS = {
   rimInward: 0,
   rimFreq1: 2,
   rimFreq2: 1,
-  blueColor: "#009dff",
+  blueColor: "#f9fee0",
   rimLine: 1.4,
   rimLinePos: 0.488,
   rimLineWidth: 0.003,
@@ -178,9 +170,6 @@ float sdRoundBox(vec2 p, vec2 b, float r){
   return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
 }
 
-// Coverage of the panels seen through the lens, for transparent canvases.
-float gLensA = 0.0;
-
 vec3 discLens(vec2 center, float aspectCorrect, out float outA) {
   vec2 p = (vUv - center);
   p.x *= aspectCorrect;
@@ -223,14 +212,11 @@ vec3 discLens(vec2 center, float aspectCorrect, out float outA) {
   if (N > MAX_SAMPLES) N = MAX_SAMPLES;
   vec3 col = vec3(0.0);
   vec3 caW = vec3(0.0);
-  float aSum = 0.0;
   for (int i = 0; i < MAX_SAMPLES; i++) {
     if (i >= N) break;
     float t = float(i) / float(N - 1);
     vec2 sUV = baseUV + dispDir * (t - 0.5);
-    vec4 s4 = texture2D(uTex, sUV);
-    vec3 s = s4.rgb;
-    aSum += s4.a;
+    vec3 s = texture2D(uTex, sUV).rgb;
     vec3 w = vec3(
       exp(-pow((t - 0.00) / 0.38, 2.0)),
       exp(-pow((t - 0.50) / 0.38, 2.0)),
@@ -240,7 +226,6 @@ vec3 discLens(vec2 center, float aspectCorrect, out float outA) {
     caW += w;
   }
   col /= max(caW, vec3(0.001));
-  float texA = aSum / float(N);
 
   float blurFade = 1.0 - smoothstep(0.72, 0.98, nd);
   if (uBlur > 0.01 && blurFade > 0.01) {
@@ -274,23 +259,18 @@ vec3 discLens(vec2 center, float aspectCorrect, out float outA) {
   if (uShimmer > 0.5) ring *= sin(angle * uShimmerFreq + uTime * uShimmerSpeed) * uShimmerDepth + (1.0 - uShimmerDepth);
   float ringAura = exp(-pow((dC - tR) / (rW * 6.0), 2.0)) * 0.28 * uBlueRing * (uGlow / 17.0);
   col += uBlueColor * (ring + ringAura);
-  float rimLineV = exp(-pow((dC - uRimLinePos) / max(uRimLineWidth, 0.0001), 2.0)) * uRimLine;
-  col += vec3(rimLineV);
-  // Glow stays additive: on transparent pixels it contributes colour with zero alpha
-  // (premultiplied), so it brightens the page behind instead of tinting it.
-  gLensA = texA;
+  col += vec3(exp(-pow((dC - uRimLinePos) / max(uRimLineWidth, 0.0001), 2.0)) * uRimLine);
 
   outA = smoothstep(1.0, 0.93, maskND);
   return col;
 }
 
 void main(){
-  vec4 baseT = texture2D(uTex, vUv);
-  vec3 outc = baseT.rgb;
+  vec3 base = texture2D(uTex, vUv).rgb;
+  vec3 outc = base;
   float a = 0.0;
   vec3 c = discLens(uCenter, uAspect, a);
   outc = mix(outc, c, a);
-  float alpha = mix(baseT.a, gLensA, a);
   if (uVignette > 0.001) {
     vec2 vc = vUv - 0.5;
     vc.x *= uAspect;
@@ -298,7 +278,7 @@ void main(){
     float vig = 1.0 - uVignette * smoothstep(0.5, 1.0, d);
     outc *= clamp(vig, 0.0, 1.0);
   }
-  gl_FragColor = vec4(outc, alpha);
+  gl_FragColor = vec4(outc, 1.0);
   #include <colorspace_fragment>
 }
 `;
@@ -387,9 +367,6 @@ function createCarousel(
     entry: boolean;
     fullWidthLens: boolean;
     imageOverlay: boolean;
-    lensScale: number;
-    panelFill: number;
-    transparent: boolean;
     onActiveChange: (index: number) => void;
     onFocusChange: (open: boolean) => void;
     onEntryDone: (done: boolean) => void;
@@ -403,7 +380,7 @@ function createCarousel(
   let W = Math.max(1, mount.clientWidth);
   let H = Math.max(1, mount.clientHeight);
   const panelHFor = () =>
-    Math.max(120, Math.min(options.panelHeight, Math.round(H * options.panelFill)));
+    Math.max(120, Math.min(options.panelHeight, Math.round(H * 0.52)));
   let PANEL_H = panelHFor();
   const GAP = options.gap;
   const EASE = reduced ? 0.28 : 0.09;
@@ -420,7 +397,7 @@ function createCarousel(
 
   let renderer: THREE.WebGLRenderer;
   try {
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: options.transparent });
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   } catch {
     return null;
   }
@@ -428,14 +405,11 @@ function createCarousel(
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   renderer.setPixelRatio(dpr);
   renderer.setSize(W, H);
-  // Transparent mode clears to (0,0,0,0) so the page shows through around the panels and lens.
-  if (options.transparent) renderer.setClearColor(0x000000, 0);
-  else renderer.setClearColor(hexToNumber(options.background), 1);
+  renderer.setClearColor(hexToNumber(options.background), 1);
   renderer.domElement.style.display = "block";
   renderer.domElement.style.width = "100%";
   renderer.domElement.style.height = "100%";
-  // Vertical swipes scroll the page; horizontal drags reach the carousel.
-  renderer.domElement.style.touchAction = "pan-y";
+  renderer.domElement.style.touchAction = "none";
   renderer.domElement.style.userSelect = "none";
   renderer.domElement.setAttribute("aria-hidden", "true");
   mount.appendChild(renderer.domElement);
@@ -880,17 +854,11 @@ function createCarousel(
   }
 
   function onWheel(e: WheelEvent) {
-    // Vertical wheel always scrolls the page. Only a horizontal gesture
-    // (trackpad swipe or Shift + wheel) over an image moves the carousel.
-    const dx = e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX;
-    if (Math.abs(dx) <= Math.abs(e.shiftKey ? 0 : e.deltaY)) return;
-    const p = localPoint(e);
-    if (!panelAtPointer(p.x, p.y)) return;
     e.preventDefault();
     if (inputLocked()) return;
     userInteracted = true;
     pendingFocus = null;
-    target += dx * WHEEL;
+    target += (e.deltaY || e.deltaX) * WHEEL;
     lastInput = performance.now();
     snapped = false;
   }
@@ -1297,11 +1265,9 @@ function createCarousel(
       rad(options.fullWidthLens ? 90 : LENS.rotation) +
       rad(LENS.spin) * (performance.now() * 0.001);
     // Long half-axis in aspect-corrected units: half the width is (W / H) / 2.
-    lensUniforms.uSizeY.value =
-      (options.fullWidthLens
-        ? Math.max(LENS.sizeY, (W / H) * 0.55)
-        : LENS.sizeY) * options.lensScale;
-    lensUniforms.uSizeX.value = LENS.sizeX * options.lensScale;
+    lensUniforms.uSizeY.value = options.fullWidthLens
+      ? Math.max(LENS.sizeY, (W / H) * 0.55)
+      : LENS.sizeY;
     const fx = focusState.lensFx;
     for (const key of LENS_FX_KEYS) {
       lensUniforms[key].value = lensFxFull[key] * fx;
@@ -1412,10 +1378,6 @@ export function LiquidGlassCarousel({
   entry = true,
   fullWidthLens = true,
   imageOverlay = true,
-  lensScale = 1,
-  panelFill = 0.52,
-  transparent = false,
-  labelGap,
   className,
   style,
   onActiveChange,
@@ -1451,9 +1413,6 @@ export function LiquidGlassCarousel({
       entry,
       fullWidthLens,
       imageOverlay,
-      lensScale,
-      panelFill,
-      transparent,
       onActiveChange: (index) => {
         setActive(index);
         onActiveChangeRef.current?.(index);
@@ -1473,7 +1432,7 @@ export function LiquidGlassCarousel({
       engine.destroy();
       engineRef.current = null;
     };
-  }, [items, panelHeight, gap, background, entry, fullWidthLens, imageOverlay, lensScale, panelFill, transparent]);
+  }, [items, panelHeight, gap, background, entry, fullWidthLens, imageOverlay]);
 
   useEffect(() => {
     const title = titleRef.current;
@@ -1523,12 +1482,6 @@ export function LiquidGlassCarousel({
     });
   }, [focused, entryDone, entry]);
 
-  // Distance from the container edge to the panel edge, minus the gap (mirrors panelHFor).
-  const labelOffset =
-    labelGap === undefined
-      ? undefined
-      : `calc((100% - min(${panelHeight}px, ${panelFill * 100}%)) / 2 - ${labelGap}px)`;
-
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === "ArrowRight") {
       event.preventDefault();
@@ -1548,7 +1501,7 @@ export function LiquidGlassCarousel({
         "relative h-full min-h-[420px] w-full overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-black/20",
         className,
       )}
-      style={{ background: transparent ? "transparent" : background, color: "#111111", ...style }}
+      style={{ background, color: "#111111", ...style }}
       tabIndex={0}
       role="region"
       aria-roledescription="carousel"
@@ -1583,14 +1536,12 @@ export function LiquidGlassCarousel({
 
       <p
         ref={titleRef}
-        style={labelOffset ? { top: labelOffset } : undefined}
         className="pointer-events-none absolute left-1/2 top-[4.5%] z-10 m-0 text-center text-[15px] font-medium tracking-[-0.02em] text-black opacity-0 sm:text-[17px]"
       >
         {current?.title}
       </p>
       <p
         ref={counterRef}
-        style={labelOffset ? { bottom: labelOffset } : undefined}
         className="pointer-events-none absolute bottom-[6%] left-1/2 z-10 m-0 text-center text-[13px] font-medium tabular-nums tracking-[-0.02em] text-black opacity-0 sm:text-[15px]"
       >
         {pad(active + 1)}/{pad(items.length)}

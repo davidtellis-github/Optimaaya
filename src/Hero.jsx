@@ -1,7 +1,5 @@
 import { useState } from "react";
-import DitheredLogo from "./components/ui/dithered-logo";
 import logo from "./assests/LOgo.svg";
-import logomark from "./assests/logomark.svg";
 import "./Hero.css";
 
 const NAV_LINKS = [
@@ -58,19 +56,6 @@ export default function Hero() {
           </button>
         </header>
 
-        <DitheredLogo
-          imageSrc={logomark}
-          className="hero-mark"
-          gridSize={200}
-          scale={1} // logomark fills the canvas (480px desktop, 220px mobile)
-          dotScale={0.5}
-          invert={true}
-          cornerRadius={0.5}
-          gamma={1.5}
-          blur={3.75}
-          diffusionStrength={1.0}
-        />
-
         <main>
           <section className="hero">
             <a href="#services" className="eyebrow reveal" style={{ "--d": 0 }}>
@@ -97,12 +82,10 @@ export default function Hero() {
                 Let’s talk about your brand
                 <span aria-hidden="true">→</span>
               </a>
-              <a href="#work" className="btn btn-link">Explore our work</a>
+              
             </div>
 
-            <p className="microcopy reveal" style={{ "--d": 4 }}>
-              Brand Strategy • Creative • Digital
-            </p>
+            
           </section>
         </main>
       </div>

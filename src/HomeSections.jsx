@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import logo from "./assests/LOgo.svg";
-import logomark from "./assests/logomark.svg";
 import "./HomeSections.css";
 
 const EMAIL = "optimaaya@gmail.com";
+const LINKEDIN = "https://www.linkedin.com/company/optimaaya-creative-digital-agency/";
 
 /* ---------- Shared bits ---------- */
 
@@ -59,47 +59,110 @@ function useScrollReveal() {
   }, []);
 }
 
-/* ---------- 01 Perspective ---------- */
+/* ---------- 02 Perspective (outcome cards) ---------- */
+
+// Thin line icons in the reference style (64×64, 1px strokes, current colour).
+const ICONS = {
+  identity: (
+    <>
+      <circle cx="32" cy="32" r="24" />
+      <path d="M20 34a12 12 0 0 1 24 0" />
+      <path d="M14 33a18 18 0 0 1 36 0" />
+      <path d="M26 35a6 6 0 0 1 12 0c0 6-3 11-6 15" />
+      <path d="M32 33v4c0 5-2 9-5 13" />
+    </>
+  ),
+  launch: (
+    <>
+      <path d="M32 10 54 21 32 32 10 21Z" />
+      <path d="M10 29l22 11 22-11" />
+      <path d="M10 37l22 11 22-11" />
+      <path d="M10 45l22 11 22-11" />
+    </>
+  ),
+  content: (
+    <>
+      <circle cx="32" cy="32" r="4" />
+      {Array.from({ length: 16 }, (_, i) => {
+        const a = (i / 16) * Math.PI * 2;
+        const r1 = i % 2 ? 10 : 8;
+        const r2 = i % 2 ? 18 : 26;
+        return (
+          <line
+            key={i}
+            x1={32 + Math.cos(a) * r1}
+            y1={32 + Math.sin(a) * r1}
+            x2={32 + Math.cos(a) * r2}
+            y2={32 + Math.sin(a) * r2}
+          />
+        );
+      })}
+    </>
+  ),
+  website: (
+    <>
+      <rect x="8" y="12" width="48" height="36" rx="3" />
+      <path d="M8 20h48" />
+      <circle cx="13" cy="16" r="1" />
+      <circle cx="17" cy="16" r="1" />
+      <path d="M16 28h20M16 34h14" />
+      <path d="M38 36l14 5-6 2-2 6Z" />
+    </>
+  ),
+};
 
 const OUTCOMES = [
-  "A stronger identity.",
-  "A considered launch.",
-  "Content that connects.",
-  "A website that makes the next step easy.",
+  {
+    icon: "identity",
+    title: "A stronger identity.",
+    text: "Define what your brand stands for and bring it to life through identity, storytelling and creative direction.",
+  },
+  {
+    icon: "launch",
+    title: "A considered launch.",
+    text: "Connect audience insight, campaign creative and paid media to your business goals.",
+  },
+  {
+    icon: "content",
+    title: "Content that connects.",
+    text: "Build a presence people recognise, connect with and return to through content, social media and creator partnerships.",
+  },
+  {
+    icon: "website",
+    title: "A website that makes the next step easy.",
+    text: "Create websites and online stores that communicate clearly and make it easier for people to take action.",
+  },
 ];
 
 export function Perspective() {
   return (
     <section id="perspective" className="section perspective" aria-labelledby="perspective-title">
       <div className="grid12">
-        <SectionLabel index="02">Perspective</SectionLabel>
-        <h2 id="perspective-title" className="section-title perspective-title" data-reveal>
-          A clear perspective changes what’s possible.
-        </h2>
-      </div>
-
-      <div className="grid12">
-        <div className="bento">
-          <article className="bento-card bento-card--feature" data-reveal>
-            <span
-              className="bento-mark"
-              aria-hidden="true"
-              style={{ WebkitMaskImage: `url(${logomark})`, maskImage: `url(${logomark})` }}
-            />
-            <p className="bento-feature-text">
-              Whatever your business needs next, we begin by understanding it. Then we bring the
-              right ideas, channels and expertise together around a clear direction.
-            </p>
-          </article>
-
-          {OUTCOMES.map((outcome, i) => (
-            <article key={outcome} className="bento-card" data-reveal style={{ "--i": i }}>
-              <span className="bento-index">0{i + 1}</span>
-              <p className="bento-text">{outcome}</p>
-              <Sparkle />
-            </article>
-          ))}
+        <div className="persp-top" data-reveal>
+          <div>
+            <span className="persp-tag">Perspective</span>
+            <h2 id="perspective-title" className="persp-title">
+              A clear perspective changes what’s possible.
+            </h2>
+          </div>
+          <p className="persp-lede">
+            Whatever your business needs next, we begin by understanding it. Then we bring the
+            right ideas, channels and expertise together around a clear direction.
+          </p>
         </div>
+
+        <ol className="persp-cards">
+          {OUTCOMES.map((item, i) => (
+            <li key={item.title} className="persp-card" data-reveal style={{ "--i": i }}>
+              <span className="persp-card-index">00{i + 1}</span>
+              <svg className="persp-card-icon" viewBox="0 0 64 64" aria-hidden="true">
+                {ICONS[item.icon]}
+              </svg>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </li>
+          ))}
+        </ol>
       </div>
     </section>
   );
@@ -107,59 +170,218 @@ export function Perspective() {
 
 /* ---------- 02 What we do ---------- */
 
+// Placeholder photos (Unsplash) until there's imagery for each service.
+const serviceImage = (id) =>
+  `https://images.unsplash.com/photo-${id}?w=900&h=560&q=80&auto=format&fit=crop`;
+
 const SERVICES = [
   {
     name: "Brand & Creative",
     text: "Define what your brand stands for and bring it to life through identity, storytelling and creative direction.",
+    image: serviceImage("1600585154340-be6161a56a0c"),
     tags: ["Brand positioning", "Tone of voice", "Brand guidelines", "Visual identity", "Campaign concepts", "Launch planning"],
   },
   {
     name: "Social & Influence",
     text: "Build a presence people recognise, connect with and return to through content, social media and creator partnerships.",
+    image: serviceImage("1610846202780-b4d9837371ea"),
     tags: ["Social strategy", "Content production", "Video content", "Influencer campaigns", "Personal branding", "On-camera coaching"],
   },
   {
     name: "Performance Marketing",
     text: "Connect audience insight, campaign creative and paid media to your business goals.",
+    image: serviceImage("1527630941-4a229fd674ab"),
     tags: ["Meta & Google ads", "Audience targeting", "Creative testing", "Landing pages", "Conversion tracking", "Reporting"],
   },
   {
     name: "Websites & Digital Experiences",
     text: "Create websites and online stores that communicate clearly and make it easier for people to take action.",
+    image: serviceImage("1581892805885-73bdd91beff0"),
     tags: ["Website strategy", "Design & development", "Landing pages", "Shopify storefronts", "Checkout setup"],
   },
   {
     name: "Search & Visibility",
     text: "Help your business become easier to discover through search engines and AI-powered search experiences.",
+    image: serviceImage("1482938289607-e9573fc25ebb"),
     tags: ["SEO", "Technical SEO", "On-page optimisation", "Answer engine optimisation", "AI visibility audits"],
   },
   {
     name: "Automation & Measurement",
     text: "Connect your marketing systems, follow up with intent and understand what your efforts contribute.",
+    image: serviceImage("1568557412756-7d219873dd11"),
     tags: ["Funnel planning", "CRM integration", "Marketing automation", "Analytics & tracking", "Performance reporting"],
   },
 ];
 
-export function Services() {
-  return (
-    <section id="services" className="section panel panel--dark services" aria-labelledby="services-title">
-      <PanelGrid />
-      <div className="grid12">
-        <SectionLabel index="03">Services</SectionLabel>
-        <h2 id="services-title" className="section-title services-title" data-reveal>
-          What we do
-        </h2>
-      </div>
+// The page background fades ivory -> purple as What we do scrolls in (its top moving
+// from 75% to 25% of the screen), and back as it leaves, so there's no hard edge.
+const IVORY = [255, 250, 235];
+const PURPLE = [35, 28, 62];
+function fadePageBackground(rect) {
+  const vh = window.innerHeight;
+  const clamp = (v) => Math.min(1, Math.max(0, v));
+  const enter = clamp((vh * 0.75 - rect.top) / (vh * 0.5));
+  const leave = clamp((rect.bottom - vh * 0.25) / (vh * 0.5));
+  const t = Math.min(enter, leave);
+  const e = t * t * (3 - 2 * t); // smoothstep
+  const c = IVORY.map((v, i) => Math.round(v + (PURPLE[i] - v) * e));
+  document.body.style.backgroundColor = `rgb(${c.join(",")})`;
+}
 
-      <ol className="service-list">
-        {SERVICES.map((service, i) => (
-          <li key={service.name} className="service-row grid12" data-reveal>
-            <span className="service-index">0{i + 1}</span>
-            <h3 className="service-name">{service.name}</h3>
-            <div className="service-detail">
-              <p>{service.text}</p>
+const STEP_MS = 900; // duration of the glide when a service name is clicked
+
+// Pinned while scrolling: each 1/n of the section's scroll lights up the next service.
+export function Services() {
+  const sectionRef = useRef(null);
+  const [active, setActive] = useState(0);
+  const n = SERVICES.length;
+
+  useEffect(() => {
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const el = sectionRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      fadePageBackground(r);
+      const travel = r.height - window.innerHeight;
+      if (travel <= 0) return; // not pinned (phones)
+      const progress = Math.min(1, Math.max(0, -r.top / travel));
+      setActive(Math.min(n - 1, Math.floor(progress * n)));
+      el.style.setProperty("--svc-progress", progress.toFixed(4));
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      document.body.style.backgroundColor = "";
+    };
+  }, [n]);
+
+  // Eased scroll to a service (ease-in-out cubic) when its name is clicked.
+  const scrollAnim = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(scrollAnim.current), []);
+  const goTo = (i, duration = STEP_MS) => {
+    const el = sectionRef.current;
+    const travel = el.offsetHeight - window.innerHeight;
+    if (travel <= 0) return;
+    const sectionTop = el.getBoundingClientRect().top + window.scrollY;
+    const to = sectionTop + ((i + 0.5) / n) * travel;
+    const from = window.scrollY;
+    cancelAnimationFrame(scrollAnim.current);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      window.scrollTo({ top: to, behavior: "instant" });
+      return;
+    }
+    const start = performance.now();
+    const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      window.scrollTo({ top: from + (to - from) * ease(t), behavior: "instant" });
+      if (t < 1) scrollAnim.current = requestAnimationFrame(tick);
+      else scrollAnim.current = 0;
+    };
+    scrollAnim.current = requestAnimationFrame(tick);
+  };
+
+  // Gentle snap: when scrolling stops inside the section, glide to a service.
+  // Direction-aware (a small push moves on, a tiny one settles back), and never
+  // past the last/first service, so scrolling out is never blocked.
+  useEffect(() => {
+    let timer = 0;
+    let lastY = window.scrollY;
+    let dir = 0;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y !== lastY) dir = Math.sign(y - lastY);
+      lastY = y;
+      clearTimeout(timer);
+      timer = setTimeout(settle, 140);
+    };
+    const settle = () => {
+      const el = sectionRef.current;
+      if (!el || scrollAnim.current) return;
+      const travel = el.offsetHeight - window.innerHeight;
+      if (travel <= 0) return; // not pinned (phones)
+      const step = travel / n;
+      const pos = window.scrollY - (el.getBoundingClientRect().top + window.scrollY); // px into the section
+      const f = pos / step - 0.5; // fractional service index at the slice centres
+      if (f <= 0 || f >= n - 1) return; // before the first / past the last centre: free
+      const base = Math.floor(f);
+      const into = f - base;
+      let target = Math.round(f);
+      if (dir > 0 && into > 0.15) target = base + 1;
+      if (dir < 0 && into < 0.85) target = base;
+      if (Math.abs(f - target) * step < 2) return;
+      goTo(target, 600);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [n]);
+
+
+  // Preload every service image so switching never shows an empty frame.
+  useEffect(() => {
+    SERVICES.forEach((service) => {
+      new Image().src = service.image;
+    });
+  }, []);
+
+  const current = SERVICES[active];
+
+  return (
+    <section
+      id="services"
+      ref={sectionRef}
+      className="section panel panel--dark services"
+      aria-labelledby="services-title"
+      style={{ "--steps": n }}
+    >
+      <div className="svc-pin">
+        <PanelGrid />
+        <div className="grid12 svc-layout">
+          <div className="svc-list">
+            <h2 id="services-title" className="svc-label">What we do</h2>
+            <ol className="svc-names">
+              {SERVICES.map((service, i) => (
+                <li key={service.name} className={i === active ? "is-active" : i < active ? "is-past" : ""}>
+                  <button type="button" onClick={() => goTo(i)}>
+                    <h3>{service.name}</h3>
+                  </button>
+                  {/* Phones: no pinning, so each service shows its own details */}
+                  <div className="svc-mobile-detail">
+                    <img className="svc-detail-image" src={service.image} alt="" loading="lazy" />
+                    <p>{service.text}</p>
+                    <ul className="service-tags">
+                      {service.tags.map((tag) => (
+                        <li key={tag}>
+                          <Sparkle />
+                          {tag}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="svc-detail" aria-live="polite">
+            <div key={active} className="svc-detail-inner">
+              <p className="svc-detail-index">0{active + 1}</p>
+              <img className="svc-detail-image" src={current.image} alt="" />
+              <p className="svc-detail-text">{current.text}</p>
               <ul className="service-tags">
-                {service.tags.map((tag) => (
+                {current.tags.map((tag) => (
                   <li key={tag}>
                     <Sparkle />
                     {tag}
@@ -167,9 +389,13 @@ export function Services() {
                 ))}
               </ul>
             </div>
-          </li>
-        ))}
-      </ol>
+          </div>
+
+          <div className="svc-scrollbar" aria-hidden="true">
+            <span className="svc-scrollbar-thumb" />
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -346,8 +572,8 @@ function ContactForm() {
 export function Contact() {
   const phrase = (
     <span className="marquee-item">
-      OPTIMAAYA<sup>™</sup> <span className="marquee-dash" /> Imagination, optimised.{" "}
-      <span className="marquee-dash" />
+      OPTIMAAYA<sup>™</sup> <span className="marquee-dot" /> Imagination, optimised.{" "}
+      <span className="marquee-dot" />
     </span>
   );
 
@@ -374,6 +600,12 @@ export function Contact() {
           <p className="contact-direct" data-reveal>
             Prefer email?
             <a href={`mailto:${EMAIL}`}>Write to us at {EMAIL}</a>
+          </p>
+          <p className="contact-direct" data-reveal>
+            Follow our work
+            <a href={LINKEDIN} target="_blank" rel="noopener noreferrer">
+              Optimaaya on LinkedIn ↗
+            </a>
           </p>
         </div>
         <ContactForm />

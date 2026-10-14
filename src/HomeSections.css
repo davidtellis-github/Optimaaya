@@ -9,7 +9,10 @@
   --radius-panel: 32px;
 }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--nav-height); /* anchored sections land below the fixed nav */
+}
 
 /* 12-column grid shared by every section (same as the overlay) */
 .grid12 {
@@ -81,6 +84,7 @@ html { scroll-behavior: smooth; }
   overflow: hidden;
 }
 .panel--dark > :not(.panel-grid) { position: relative; z-index: 1; }
+
 .panel--dark .section-title { color: var(--bg); }
 .panel--dark .section-label { color: var(--gold-light); }
 .panel--dark .section-lede { color: var(--on-dark-soft); }
@@ -98,123 +102,227 @@ html { scroll-behavior: smooth; }
 .panel-grid span { border-left: 1px solid rgba(255, 250, 235, 0.06); }
 .panel-grid span:last-child { border-right: 1px solid rgba(255, 250, 235, 0.06); }
 
-/* ---------- 01 Perspective (bento) ---------- */
-.perspective-title { grid-column: 2 / 12; }
+/* ---------- 02 Perspective (outcome cards) ---------- */
+.perspective {
+  /* Pulled up into the empty space under the Work carousel (~120px below it) */
+  margin-top: calc(var(--space) * -22);
+  padding-top: 0;
+}
 
-.bento {
+.persp-top {
   grid-column: 2 / 12;
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
-  grid-auto-rows: minmax(220px, auto);
-  gap: 12px;
-  margin-top: calc(var(--space) * 3);
+  grid-template-columns: 1.4fr 1fr;
+  gap: calc(var(--space) * 2);
+  align-items: end;
 }
 
-.bento-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: var(--space);
-  padding: calc(var(--space) * 1.5);
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.55);
-  transition: transform 0.5s var(--ease), border-color 0.3s var(--ease);
-}
-.bento-card:hover { transform: translateY(-3px); border-color: var(--accent); }
-.bento-card .sparkle {
-  position: absolute;
-  top: calc(var(--space) * 1.5);
-  right: calc(var(--space) * 1.5);
-  width: 14px;
-  height: 14px;
-  color: var(--accent);
+.persp-tag {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #EAE8E3;
+  font-size: 12.5px;
+  color: var(--ink-soft);
 }
 
-.bento-index {
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  color: var(--accent-ink);
-}
-.bento-text {
-  margin: 0;
-  max-width: 14ch;
+.persp-title {
+  max-width: 18ch;
+  margin: var(--space) 0 0;
   font-family: var(--font-display);
-  font-weight: 600;
-  font-size: clamp(22px, 2.1vw, 30px);
-  line-height: 1.12;
-  letter-spacing: -0.03em;
+  font-weight: 500;
+  font-size: clamp(36px, 4vw, 60px);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
   color: var(--ink);
 }
 
-.bento-card--feature {
-  grid-row: span 2;
-  border: none;
-  background: var(--ink);
-  color: var(--bg);
-}
-.bento-card--feature:hover { transform: none; }
-.bento-mark {
-  display: block;
-  width: 112px;
-  aspect-ratio: 293 / 245;
-  background: var(--gold-light);
-  -webkit-mask: no-repeat center / contain;
-          mask: no-repeat center / contain;
-}
-.bento-feature-text {
-  margin: 0;
-  font-size: clamp(17px, 1.4vw, 20px);
+.persp-lede {
+  margin: 0 0 6px;
+  font-size: 16px;
   line-height: 1.6;
-  color: var(--on-dark-soft);
+  color: var(--ink-soft);
 }
 
-/* ---------- 02 What we do ---------- */
-.services-title { margin-bottom: calc(var(--space) * 3); }
-
-.service-list {
-  margin: 0;
+.persp-cards {
+  grid-column: 2 / 12;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: calc(var(--space) * 3) 0 0;
   padding: 0;
   list-style: none;
 }
 
-.service-row {
-  align-items: start;
-  padding-block: calc(var(--space) * 2);
-  border-top: 1px solid var(--line-dark);
+.persp-card {
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--space) * 1.25) calc(var(--space) * 1.25) calc(var(--space) * 1.75);
+  border-radius: 16px;
+  background: #eae1c3; /* light neutral grey, as in the reference */
+  transition: transform 0.5s var(--ease), background 0.4s var(--ease),
+              opacity 0.9s var(--ease);
 }
-.service-row:last-child { border-bottom: 1px solid var(--line-dark); }
+.persp-card:hover { transform: translateY(-4px); background: #dccda0; }
 
-.service-index {
-  grid-column: 2 / 3;
-  padding-top: 14px;
-  font-size: 13px;
+.persp-card-index {
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  opacity: 0.8;
+}
+
+.persp-card-icon {
+  width: 64px;
+  height: 64px;
+  margin: calc(var(--space) * 1.5) 0 0;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+  transition: transform 0.8s var(--ease);
+}
+.persp-card:hover .persp-card-icon { transform: rotate(-6deg) scale(1.04); }
+
+.persp-card h3 {
+  margin: calc(var(--space) * 3) 0 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  min-height: 2.4em; /* two lines, so every card's text starts at the same height */
+}
+.persp-card p {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+/* ---------- What we do (pinned, scroll-driven) ---------- */
+.services {
+  --svc-step: 40svh; /* scroll distance per service */
+  height: calc(100svh + var(--steps) * var(--svc-step));
+  padding-block: 0;
+  overflow: clip; /* clip, not hidden: hidden would break position: sticky */
+  /* No fill or rounded edge: the page background fades to purple behind it instead */
+  background: transparent;
+  border-radius: 0;
+}
+
+.services > .svc-pin {
+  position: sticky; /* beats the generic .panel--dark > * { position: relative } */
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.svc-layout {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  align-items: center;
+  padding-top: var(--nav-height);
+}
+
+.svc-list { grid-column: 2 / 8; }
+.svc-label {
+  margin: 0 0 calc(var(--space) * 1.5);
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
   color: var(--gold-light);
 }
 
-.service-name {
-  grid-column: 3 / 8;
-  margin: 0;
-  padding-right: var(--space);
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(30px, 3.9vw, 56px);
-  line-height: 1.04;
-  letter-spacing: -0.04em;
-  color: var(--bg);
-  transition: color 0.4s var(--ease), transform 0.5s var(--ease);
+.svc-detail { grid-column: 8 / 12; padding-left: calc(var(--space) * 2); }
+.svc-detail-inner { animation: svc-in 0.6s var(--ease); }
+@keyframes svc-in {
+  from { opacity: 0; transform: translateY(14px); }
 }
-.service-row:hover .service-name { color: var(--gold-light); transform: translateX(8px); }
-
-.service-detail { grid-column: 8 / 12; }
-.service-detail p {
-  margin: 6px 0 0;
-  font-size: 16px;
+.svc-detail-index {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: var(--gold-light);
+}
+.svc-detail-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  margin-top: calc(var(--space) * 1.25);
+  border-radius: 18px;
+  object-fit: cover;
+  background: rgba(255, 250, 235, 0.06);
+}
+.svc-detail-text {
+  margin: calc(var(--space) * 1.25) 0 0;
+  font-size: 17px;
   line-height: 1.6;
   color: var(--on-dark-soft);
 }
+.svc-detail .service-tags { margin-top: calc(var(--space) * 1.25); }
+
+.svc-names {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.svc-names button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.svc-names h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(28px, 3.4vw, 52px);
+  line-height: 1.04;
+  letter-spacing: -0.045em;
+  color: rgba(255, 250, 235, 0.16);
+  transition: color 0.5s var(--ease), transform 0.6s var(--ease);
+}
+.svc-names li.is-past h3 { color: rgba(255, 250, 235, 0.42); }
+.svc-names li.is-active h3 { color: var(--bg); transform: translateX(6px); }
+.svc-names button:hover h3 { color: var(--gold-light); }
+.svc-names button:focus-visible { outline: 1px solid var(--gold-light); outline-offset: 4px; }
+
+/* Scroll bar after the detail column: thumb (1/n of the track) follows scroll progress */
+.svc-scrollbar {
+  grid-column: 12 / 13;
+  grid-row: 1;
+  justify-self: center;
+  position: relative;
+  width: 2px;
+  height: 46vh;
+  border-radius: 2px;
+  background: rgba(255, 250, 235, 0.14);
+}
+.svc-scrollbar-thumb {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: calc(100% / var(--steps));
+  top: calc(var(--svc-progress, 0) * (100% - 100% / var(--steps)));
+  border-radius: 2px;
+  background: var(--gold-light);
+}
+
+.svc-mobile-detail { display: none; }
 
 .service-tags {
   display: flex;
@@ -380,7 +488,7 @@ html { scroll-behavior: smooth; }
   font-size: clamp(64px, 11vw, 180px);
   line-height: 1;
   letter-spacing: -0.05em;
-  color: var(--bg);
+  color: rgba(255, 250, 235, 0.25);
 }
 .marquee-item sup {
   align-self: flex-start;
@@ -388,11 +496,12 @@ html { scroll-behavior: smooth; }
   font-size: 0.25em;
   letter-spacing: 0;
 }
-.marquee-dash {
+.marquee-dot {
   display: inline-block;
-  width: 0.9em;
-  height: 0.06em;
-  margin: 0 0.3em;
+  width: 0.14em;
+  height: 0.14em;
+  margin: 0 0.45em;
+  border-radius: 50%;
   background: var(--gold-light);
 }
 @keyframes marquee {
@@ -544,10 +653,11 @@ html { scroll-behavior: smooth; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1200px) {
-  .bento { grid-column: 1 / -1; }
-  .service-name { grid-column: 2 / 8; }
-  .service-index { grid-column: 1 / 2; }
-  .service-detail { grid-column: 8 / 13; }
+  .persp-top,
+  .persp-cards { grid-column: 1 / -1; }
+  .persp-cards { grid-template-columns: repeat(2, 1fr); }
+  .svc-list { grid-column: 1 / 8; }
+  .svc-detail { grid-column: 8 / 12; }
   .collab-intro { grid-column: 1 / 6; }
   .founders { grid-column: 7 / 13; }
   .contact-intro { grid-column: 1 / 6; }
@@ -558,7 +668,6 @@ html { scroll-behavior: smooth; }
   .section { padding-block: calc(var(--space) * 5); }
   .section-label,
   .section-title,
-  .perspective-title,
   .collab-intro,
   .founders,
   .contact-intro,
@@ -568,13 +677,26 @@ html { scroll-behavior: smooth; }
   .footer-contact,
   .footer-bottom p { grid-column: 1 / -1; }
 
-  .bento { grid-template-columns: 1fr; }
-  .bento-card--feature { grid-row: auto; }
+  .perspective { margin-top: calc(var(--space) * -2); }
+  .persp-top { grid-template-columns: 1fr; align-items: start; }
+  .persp-cards { grid-template-columns: 1fr; margin-top: calc(var(--space) * 2); }
+  .persp-card h3 { min-height: 0; }
 
-  .service-index { display: none; }
-  .service-name,
-  .service-detail { grid-column: 1 / -1; }
-  .service-detail { margin-top: var(--space); }
+  /* What we do: plain list, no pinning */
+  .services { height: auto; padding-block: calc(var(--space) * 5); }
+  .services > .svc-pin { position: static; height: auto; overflow: visible; }
+  .svc-layout { padding-top: 0; }
+  .svc-list { grid-column: 1 / -1; }
+  .svc-detail,
+  .svc-scrollbar { display: none; }
+  .svc-names > li { padding-block: calc(var(--space) * 1.25); border-top: 1px solid var(--line-dark); }
+  .svc-names li h3,
+  .svc-names li.is-past h3,
+  .svc-names li.is-active h3 { color: var(--bg); transform: none; }
+  .svc-names button { cursor: default; }
+  .svc-mobile-detail { display: block; margin-top: calc(var(--space) * 0.75); }
+  .svc-mobile-detail .svc-detail-image { margin: 0 0 var(--space); }
+  .svc-mobile-detail p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--on-dark-soft); }
 
   .process-step { min-height: auto; padding-block: var(--space); row-gap: 6px; }
   .process-step:hover { min-height: auto; }
