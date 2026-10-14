@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="827" height="620" viewBox="0 0 827 620">
+  <defs>
+    <radialGradient id="g" cx="0.72" cy="0.28" r="0.9">
+      <stop offset="0" stop-color="#3A3160"/>
+      <stop offset="1" stop-color="#1A1530"/>
+    </radialGradient>
+  </defs>
+  <rect width="827" height="620" fill="url(#g)"/>
+  <line x1="69" y1="0" x2="69" y2="620" stroke="#FFFAEB" stroke-opacity="0.06"/><line x1="138" y1="0" x2="138" y2="620" stroke="#FFFAEB" stroke-opacity="0.06"/><line x1="207" y1="0" x2="207" y2="620" stroke="#FFFAEB" stroke-opacity="0.06"/><line x1="276" y1="0" x2="276" y2="620" stroke="#FFFAEB" stroke-opacity="0.06"/><line x1="345" y1="0" x2="345" y2="620" stroke="#FFFAEB" stroke-opacity="0.06"/><line x1="414" y1="0" x2="414" y2="620" stroke="#FFFAEB" stroke-opacity="0.06"/><line x1="483" y1="0" x2="483" y2="620" stroke="#FFFAEB" stroke-opacity="0.06"/><line x1="552" y1="0" x2="552" y2="620" stroke="#FFFAEB" stroke-opacity="0.06"/><line x1="621" y1="0" x2="621" y2="620" stroke="#FFFAEB" stroke-opacity="0.06"/><line x1="690" y1="0" x2="690" y2="620" stroke="#FFFAEB" stroke-opacity="0.06"/><line x1="759" y1="0" x2="759" y2="620" stroke="#FFFAEB" stroke-opacity="0.06"/>
+  <circle cx="640" cy="170" r="120" fill="none" stroke="#D4CA99" stroke-opacity="0.35"/>
+  <circle cx="640" cy="170" r="70" fill="none" stroke="#D4CA99" stroke-opacity="0.2"/>
+  <text x="56" y="80" fill="#D4CA99" font-family="Helvetica Neue, Arial, sans-serif" font-size="15" letter-spacing="4">LUXURY CLIENT EXPERIENCE</text>
+  <text x="54" y="470" fill="#FFFAEB" font-family="Helvetica Neue, Arial, sans-serif" font-weight="600" font-size="62" letter-spacing="-2">Porsche Centre</text>
+  <text x="54" y="540" fill="#FFFAEB" font-family="Helvetica Neue, Arial, sans-serif" font-weight="600" font-size="62" letter-spacing="-2">Bengaluru</text>
+</svg>

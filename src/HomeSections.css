@@ -105,7 +105,7 @@ html {
 /* ---------- 02 Perspective (outcome cards) ---------- */
 .perspective {
   /* Pulled up into the empty space under the Work carousel (~120px below it) */
-  margin-top: calc(var(--space) * -22);
+  margin-top: calc(var(--space) * -24.5);
   padding-top: 0;
 }
 

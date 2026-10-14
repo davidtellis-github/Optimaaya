@@ -35,6 +35,28 @@ export interface LiquidGlassCarouselProps {
   fullWidthLens?: boolean;
   /** Draw the lens's white glow and inner shading over the images. */
   imageOverlay?: boolean;
+  /** Multiplies the lens size on both axes (1 = default). */
+  lensScale?: number;
+  /** Max share of the container height a panel may use (0.52 = default). */
+  panelFill?: number;
+  /** Render without a background so the lens can overlap surrounding content. */
+  transparent?: boolean;
+  /** Place the title/counter this many px above/below the panels instead of at the container edges. */
+  labelGap?: number;
+  /** Show the active project's title above the panels. */
+  showTitle?: boolean;
+  /** Drift right-to-left on its own at this many px/s (0 = off). Pauses on hover and
+   *  interaction, resuming a few seconds later. Off for reduced motion. */
+  autoplaySpeed?: number;
+  /** Show the "01/08" counter below the panels. */
+  showCounter?: boolean;
+  /** Draw each project's title under its panel (rendered in the WebGL scene, so it moves with it). */
+  captions?: boolean;
+  /** Caption text colour. */
+  captionColor?: string;
+  /** Called with the item index when the centred panel is clicked (or Enter is pressed).
+   *  When set, it replaces the built-in focus/zoom view. */
+  onSelect?: (index: number) => void;
   className?: string;
   style?: CSSProperties;
   onActiveChange?: (index: number) => void;
@@ -170,6 +192,9 @@ float sdRoundBox(vec2 p, vec2 b, float r){
   return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
 }
 
+// Coverage of the panels seen through the lens, for transparent canvases.
+float gLensA = 0.0;
+
 vec3 discLens(vec2 center, float aspectCorrect, out float outA) {
   vec2 p = (vUv - center);
   p.x *= aspectCorrect;
@@ -212,11 +237,14 @@ vec3 discLens(vec2 center, float aspectCorrect, out float outA) {
   if (N > MAX_SAMPLES) N = MAX_SAMPLES;
   vec3 col = vec3(0.0);
   vec3 caW = vec3(0.0);
+  float aSum = 0.0;
   for (int i = 0; i < MAX_SAMPLES; i++) {
     if (i >= N) break;
     float t = float(i) / float(N - 1);
     vec2 sUV = baseUV + dispDir * (t - 0.5);
-    vec3 s = texture2D(uTex, sUV).rgb;
+    vec4 s4 = texture2D(uTex, sUV);
+    vec3 s = s4.rgb;
+    aSum += s4.a;
     vec3 w = vec3(
       exp(-pow((t - 0.00) / 0.38, 2.0)),
       exp(-pow((t - 0.50) / 0.38, 2.0)),
@@ -226,6 +254,7 @@ vec3 discLens(vec2 center, float aspectCorrect, out float outA) {
     caW += w;
   }
   col /= max(caW, vec3(0.001));
+  float texA = aSum / float(N);
 
   float blurFade = 1.0 - smoothstep(0.72, 0.98, nd);
   if (uBlur > 0.01 && blurFade > 0.01) {
@@ -259,18 +288,23 @@ vec3 discLens(vec2 center, float aspectCorrect, out float outA) {
   if (uShimmer > 0.5) ring *= sin(angle * uShimmerFreq + uTime * uShimmerSpeed) * uShimmerDepth + (1.0 - uShimmerDepth);
   float ringAura = exp(-pow((dC - tR) / (rW * 6.0), 2.0)) * 0.28 * uBlueRing * (uGlow / 17.0);
   col += uBlueColor * (ring + ringAura);
-  col += vec3(exp(-pow((dC - uRimLinePos) / max(uRimLineWidth, 0.0001), 2.0)) * uRimLine);
+  float rimLineV = exp(-pow((dC - uRimLinePos) / max(uRimLineWidth, 0.0001), 2.0)) * uRimLine;
+  col += vec3(rimLineV);
+  // Glow stays additive: on transparent pixels it contributes colour with zero alpha
+  // (premultiplied), so it brightens the page behind instead of tinting it.
+  gLensA = texA;
 
   outA = smoothstep(1.0, 0.93, maskND);
   return col;
 }
 
 void main(){
-  vec3 base = texture2D(uTex, vUv).rgb;
-  vec3 outc = base;
+  vec4 baseT = texture2D(uTex, vUv);
+  vec3 outc = baseT.rgb;
   float a = 0.0;
   vec3 c = discLens(uCenter, uAspect, a);
   outc = mix(outc, c, a);
+  float alpha = mix(baseT.a, gLensA, a);
   if (uVignette > 0.001) {
     vec2 vc = vUv - 0.5;
     vc.x *= uAspect;
@@ -278,7 +312,7 @@ void main(){
     float vig = 1.0 - uVignette * smoothstep(0.5, 1.0, d);
     outc *= clamp(vig, 0.0, 1.0);
   }
-  gl_FragColor = vec4(outc, 1.0);
+  gl_FragColor = vec4(outc, alpha);
   #include <colorspace_fragment>
 }
 `;
@@ -321,7 +355,16 @@ type PoolItem = {
   mat: THREE.MeshBasicMaterial;
   srcIndex: number;
   bound: boolean;
+  cap: THREE.Mesh | null;
+  /** Caption's resting y (scene units), before the fade-in rise. */
+  capY: number;
+  capMat: THREE.MeshBasicMaterial | null;
 };
+
+type Caption = { tex: THREE.CanvasTexture; w: number; h: number };
+
+const CAPTION_PX = 16;
+const CAPTION_GAP = 14;
 
 type Source = {
   tex: THREE.Texture | null;
@@ -367,6 +410,13 @@ function createCarousel(
     entry: boolean;
     fullWidthLens: boolean;
     imageOverlay: boolean;
+    lensScale: number;
+    panelFill: number;
+    transparent: boolean;
+    captions: boolean;
+    captionColor: string;
+    autoplaySpeed: number;
+    onSelect?: (index: number) => void;
     onActiveChange: (index: number) => void;
     onFocusChange: (open: boolean) => void;
     onEntryDone: (done: boolean) => void;
@@ -380,7 +430,7 @@ function createCarousel(
   let W = Math.max(1, mount.clientWidth);
   let H = Math.max(1, mount.clientHeight);
   const panelHFor = () =>
-    Math.max(120, Math.min(options.panelHeight, Math.round(H * 0.52)));
+    Math.max(120, Math.min(options.panelHeight, Math.round(H * options.panelFill)));
   let PANEL_H = panelHFor();
   const GAP = options.gap;
   const EASE = reduced ? 0.28 : 0.09;
@@ -397,7 +447,7 @@ function createCarousel(
 
   let renderer: THREE.WebGLRenderer;
   try {
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: options.transparent });
   } catch {
     return null;
   }
@@ -405,11 +455,14 @@ function createCarousel(
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   renderer.setPixelRatio(dpr);
   renderer.setSize(W, H);
-  renderer.setClearColor(hexToNumber(options.background), 1);
+  // Transparent mode clears to (0,0,0,0) so the page shows through around the panels and lens.
+  if (options.transparent) renderer.setClearColor(0x000000, 0);
+  else renderer.setClearColor(hexToNumber(options.background), 1);
   renderer.domElement.style.display = "block";
   renderer.domElement.style.width = "100%";
   renderer.domElement.style.height = "100%";
-  renderer.domElement.style.touchAction = "none";
+  // Vertical swipes scroll the page; horizontal drags reach the carousel.
+  renderer.domElement.style.touchAction = "pan-y";
   renderer.domElement.style.userSelect = "none";
   renderer.domElement.setAttribute("aria-hidden", "true");
   mount.appendChild(renderer.domElement);
@@ -516,6 +569,48 @@ function createCarousel(
     return bestI;
   }
 
+  // Title captions, drawn to canvases once the caption font has loaded.
+  const captionInfo: Array<Caption | null> = items.map(() => null);
+  let captionsAlive = true;
+  if (options.captions) {
+    const font = `500 ${CAPTION_PX}px Urbanist, system-ui, sans-serif`;
+    const build = () => {
+      if (!captionsAlive) return;
+      const k = Math.max(2, Math.min(window.devicePixelRatio || 1, 2) * 2);
+      items.forEach((item, i) => {
+        const c = document.createElement("canvas");
+        const ctx = c.getContext("2d");
+        if (!ctx) return;
+        ctx.font = font;
+        const w = Math.ceil(ctx.measureText(item.title).width) + 4;
+        const h = Math.ceil(CAPTION_PX * 1.4);
+        c.width = w * k;
+        c.height = h * k;
+        ctx.scale(k, k);
+        ctx.font = font;
+        ctx.fillStyle = options.captionColor;
+        ctx.textBaseline = "middle";
+        ctx.fillText(item.title, 2, h / 2);
+        const tex = new THREE.CanvasTexture(c);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.generateMipmaps = false;
+        tex.minFilter = THREE.LinearFilter;
+        captionInfo[i] = { tex, w, h };
+      });
+      pool.forEach((p) => {
+        const info = captionInfo[p.srcIndex];
+        if (p.capMat && info) {
+          p.capMat.map = info.tex;
+          p.capMat.needsUpdate = true;
+        }
+      });
+    };
+    const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
+    // Always async: build() touches `pool`, which is created just below.
+    if (fonts?.load) fonts.load(font).then(build, build);
+    else Promise.resolve().then(build);
+  }
+
   let lastCenter = -1;
   const pool: PoolItem[] = [];
   for (let r = 0; r < REPEATS; r++) {
@@ -527,13 +622,24 @@ function createCarousel(
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 1, 1), mat);
       mesh.visible = false;
       scene.add(mesh);
-      pool.push({ mesh, mat, srcIndex: i, bound: false });
+      let cap: THREE.Mesh | null = null;
+      let capMat: THREE.MeshBasicMaterial | null = null;
+      if (options.captions) {
+        capMat = new THREE.MeshBasicMaterial({ transparent: true });
+        cap = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 1, 1), capMat);
+        cap.visible = false;
+        scene.add(cap);
+      }
+      pool.push({ mesh, mat, srcIndex: i, bound: false, cap, capMat, capY: 0 });
     }
   }
 
   let scroll = centerForIndex(0);
   let target = scroll;
   let userInteracted = false;
+  let userInputAt = -Infinity;
+  let lastTick = performance.now();
+  const AUTOPLAY_RESUME_MS = 2500;
   let velocity = 0;
   let prevScroll = 0;
   let scrollEnergy = 0;
@@ -634,6 +740,7 @@ function createCarousel(
     const half = W / 2;
     const buffer = PANEL_H;
     pool.forEach((p, poolIdx) => {
+      if (p.cap) p.cap.visible = false;
       const rep = Math.floor(poolIdx / sources.length);
       const i = p.srcIndex;
       const src = at(sources, i);
@@ -737,6 +844,15 @@ function createCarousel(
       p.mesh.position.set(finalX, finalY, 0);
       p.mesh.scale.set(finalW, finalH, 1);
 
+      // Caption: centred under the panel. Shown by updateCaptions() only for the
+      // centred panel once the carousel has settled.
+      const capInfo = captionInfo[i];
+      if (p.cap && capInfo) {
+        p.capY = finalY - finalH / 2 - CAPTION_GAP - capInfo.h / 2;
+        p.cap.position.set(finalX, p.capY, 0);
+        p.cap.scale.set(capInfo.w, capInfo.h, 1);
+      }
+
       const sx = centerX + W / 2;
       const sy = H / 2 - y;
       panelRects.push({
@@ -752,6 +868,37 @@ function createCarousel(
       if (Math.abs(centerX) < centeredDist) {
         centeredDist = Math.abs(centerX);
         centeredPanel = { srcIndex: i, centerX, wPx, h, poolIdx };
+      }
+    });
+  }
+
+  // Only the centred panel's caption shows, fading/rising in once nothing is moving.
+  let capAlpha = 0;
+  let capPool = -1;
+  function updateCaptions() {
+    if (!options.captions) return;
+    const settled =
+      !entryActive &&
+      !entrySettled &&
+      !dragging &&
+      !focusState.active &&
+      velocity === 0 &&
+      Math.abs(target - scroll) < 0.5;
+    const idx = centeredPanel ? centeredPanel.poolIdx : -1;
+    if (idx !== capPool) {
+      capPool = idx;
+      capAlpha = 0;
+    }
+    const goal = settled ? 1 : 0;
+    capAlpha += (goal - capAlpha) * (reduced ? 1 : settled ? 0.1 : 0.4);
+    if (capAlpha < 0.01) capAlpha = 0;
+    pool.forEach((p, k) => {
+      if (!p.cap || !p.capMat) return;
+      const show = k === capPool && capAlpha > 0 && !!p.capMat.map;
+      p.cap.visible = show;
+      if (show) {
+        p.capMat.opacity = capAlpha;
+        p.cap.position.y = p.capY - (1 - capAlpha) * 10;
       }
     });
   }
@@ -854,11 +1001,18 @@ function createCarousel(
   }
 
   function onWheel(e: WheelEvent) {
+    // Vertical wheel always scrolls the page. Only a horizontal gesture
+    // (trackpad swipe or Shift + wheel) over an image moves the carousel.
+    const dx = e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX;
+    if (Math.abs(dx) <= Math.abs(e.shiftKey ? 0 : e.deltaY)) return;
+    const p = localPoint(e);
+    if (!panelAtPointer(p.x, p.y)) return;
     e.preventDefault();
     if (inputLocked()) return;
     userInteracted = true;
+    userInputAt = performance.now();
     pendingFocus = null;
-    target += (e.deltaY || e.deltaX) * WHEEL;
+    target += dx * WHEEL;
     lastInput = performance.now();
     snapped = false;
   }
@@ -887,6 +1041,7 @@ function createCarousel(
     velocity = 0;
     pendingFocus = null;
     userInteracted = true;
+    userInputAt = performance.now();
     snapped = false;
     lastInput = dragMoveT;
   }
@@ -965,10 +1120,12 @@ function createCarousel(
     if (!hit) return;
     if (centeredPanel && hit.poolIdx === centeredPanel.poolIdx) {
       pendingFocus = null;
-      openFocus();
+      if (options.onSelect) options.onSelect(hit.srcIndex);
+      else openFocus();
       return;
     }
     userInteracted = true;
+    userInputAt = performance.now();
     velocity = 0;
     target = centerForIndex(nearestIndex(scroll + hit.centerX));
     snapped = true;
@@ -1036,6 +1193,7 @@ function createCarousel(
 
   function closeFocus() {
     if (!focusState.active) return;
+    userInputAt = performance.now();
     if (focusState.anim) focusState.anim.kill();
 
     const focusX = lastCenterX[focusState.poolIdx] || 0;
@@ -1185,6 +1343,7 @@ function createCarousel(
   function step(direction: number) {
     if (inputLocked()) return;
     userInteracted = true;
+    userInputAt = performance.now();
     velocity = 0;
     pendingFocus = null;
     target = centerForIndex(nearestIndex(scroll) + direction);
@@ -1211,6 +1370,28 @@ function createCarousel(
       raf = 0;
       return;
     }
+    // Autoplay: drift right-to-left (content moves left as scroll grows). Snapping is
+    // held off while drifting; when it pauses, the idle snap settles on an image.
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - lastTick) / 1000);
+    lastTick = now;
+    const autoplay =
+      options.autoplaySpeed > 0 &&
+      !reduced &&
+      !dragging &&
+      !focusState.active &&
+      !entryActive &&
+      !entrySettled &&
+      !pendingFocus &&
+      !hoverPanel &&
+      now - userInputAt > AUTOPLAY_RESUME_MS;
+    if (autoplay) {
+      target += options.autoplaySpeed * dt;
+      velocity = 0;
+      snapped = false;
+      lastInput = now;
+    }
+
     if (!dragging) {
       target += velocity;
       velocity *= FRICTION;
@@ -1245,6 +1426,7 @@ function createCarousel(
     scrollEnergy += (norm - scrollEnergy) * k;
 
     layout();
+    updateCaptions();
     refreshHover();
 
     if (pendingFocus && !focusState.active) {
@@ -1252,7 +1434,8 @@ function createCarousel(
         const pf = pendingFocus;
         pendingFocus = null;
         if (centeredPanel && centeredPanel.srcIndex === pf.srcIndex) {
-          openFocus();
+          if (options.onSelect) options.onSelect(pf.srcIndex);
+          else openFocus();
         }
       }
     }
@@ -1265,9 +1448,11 @@ function createCarousel(
       rad(options.fullWidthLens ? 90 : LENS.rotation) +
       rad(LENS.spin) * (performance.now() * 0.001);
     // Long half-axis in aspect-corrected units: half the width is (W / H) / 2.
-    lensUniforms.uSizeY.value = options.fullWidthLens
-      ? Math.max(LENS.sizeY, (W / H) * 0.55)
-      : LENS.sizeY;
+    lensUniforms.uSizeY.value =
+      (options.fullWidthLens
+        ? Math.max(LENS.sizeY, (W / H) * 0.55)
+        : LENS.sizeY) * options.lensScale;
+    lensUniforms.uSizeX.value = LENS.sizeX * options.lensScale;
     const fx = focusState.lensFx;
     for (const key of LENS_FX_KEYS) {
       lensUniforms[key].value = lensFxFull[key] * fx;
@@ -1345,10 +1530,14 @@ function createCarousel(
     rt.dispose();
     lensQuad.geometry.dispose();
     lensMat.dispose();
+    captionsAlive = false;
     pool.forEach((p) => {
       p.mesh.geometry.dispose();
       p.mat.dispose();
+      p.cap?.geometry.dispose();
+      p.capMat?.dispose();
     });
+    captionInfo.forEach((c) => c?.tex.dispose());
     sources.forEach((s) => {
       s.tex?.dispose();
     });
@@ -1378,6 +1567,16 @@ export function LiquidGlassCarousel({
   entry = true,
   fullWidthLens = true,
   imageOverlay = true,
+  lensScale = 1,
+  panelFill = 0.52,
+  transparent = false,
+  labelGap,
+  showTitle = true,
+  showCounter = true,
+  captions = false,
+  captionColor = "#111111",
+  autoplaySpeed = 0,
+  onSelect,
   className,
   style,
   onActiveChange,
@@ -1399,6 +1598,8 @@ export function LiquidGlassCarousel({
   const onActiveChangeRef = useRef(onActiveChange);
   const onFocusChangeRef = useRef(onFocusChange);
   onActiveChangeRef.current = onActiveChange;
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
   onFocusChangeRef.current = onFocusChange;
 
   useEffect(() => {
@@ -1413,6 +1614,14 @@ export function LiquidGlassCarousel({
       entry,
       fullWidthLens,
       imageOverlay,
+      lensScale,
+      panelFill,
+      transparent,
+      captions,
+      captionColor,
+      autoplaySpeed,
+      // Through a ref so a new callback each render doesn't rebuild the scene.
+      onSelect: onSelect ? (index) => onSelectRef.current?.(index) : undefined,
       onActiveChange: (index) => {
         setActive(index);
         onActiveChangeRef.current?.(index);
@@ -1432,7 +1641,7 @@ export function LiquidGlassCarousel({
       engine.destroy();
       engineRef.current = null;
     };
-  }, [items, panelHeight, gap, background, entry, fullWidthLens, imageOverlay]);
+  }, [items, panelHeight, gap, background, entry, fullWidthLens, imageOverlay, lensScale, panelFill, transparent, captions, captionColor, autoplaySpeed, Boolean(onSelect)]);
 
   useEffect(() => {
     const title = titleRef.current;
@@ -1482,6 +1691,12 @@ export function LiquidGlassCarousel({
     });
   }, [focused, entryDone, entry]);
 
+  // Distance from the container edge to the panel edge, minus the gap (mirrors panelHFor).
+  const labelOffset =
+    labelGap === undefined
+      ? undefined
+      : `calc((100% - min(${panelHeight}px, ${panelFill * 100}%)) / 2 - ${labelGap}px)`;
+
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === "ArrowRight") {
       event.preventDefault();
@@ -1492,6 +1707,9 @@ export function LiquidGlassCarousel({
     } else if (event.key === "Escape") {
       event.preventDefault();
       engineRef.current?.closeFocus();
+    } else if (event.key === "Enter" && onSelect) {
+      event.preventDefault();
+      onSelect(active);
     }
   };
 
@@ -1501,7 +1719,7 @@ export function LiquidGlassCarousel({
         "relative h-full min-h-[420px] w-full overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-black/20",
         className,
       )}
-      style={{ background, color: "#111111", ...style }}
+      style={{ background: transparent ? "transparent" : background, color: "#111111", ...style }}
       tabIndex={0}
       role="region"
       aria-roledescription="carousel"
@@ -1536,12 +1754,21 @@ export function LiquidGlassCarousel({
 
       <p
         ref={titleRef}
+        // Hidden rather than removed: the reveal effect needs both label elements.
+        style={{
+          ...(labelOffset ? { top: labelOffset } : {}),
+          ...(showTitle ? {} : { display: "none" }),
+        }}
         className="pointer-events-none absolute left-1/2 top-[4.5%] z-10 m-0 text-center text-[15px] font-medium tracking-[-0.02em] text-black opacity-0 sm:text-[17px]"
       >
         {current?.title}
       </p>
       <p
         ref={counterRef}
+        style={{
+          ...(labelOffset ? { bottom: labelOffset } : {}),
+          ...(showCounter ? {} : { display: "none" }),
+        }}
         className="pointer-events-none absolute bottom-[6%] left-1/2 z-10 m-0 text-center text-[13px] font-medium tabular-nums tracking-[-0.02em] text-black opacity-0 sm:text-[15px]"
       >
         {pad(active + 1)}/{pad(items.length)}

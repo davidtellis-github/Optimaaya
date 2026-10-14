@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import logo from "./assests/LOgo.svg";
-import "./HomeSections.css";
+import { NAV_LINKS } from "./SiteChrome";
 
 const EMAIL = "optimaaya@gmail.com";
 const LINKEDIN = "https://www.linkedin.com/company/optimaaya-creative-digital-agency/";
@@ -36,7 +36,8 @@ function SectionLabel({ index, children }) {
 }
 
 // Fades elements marked data-reveal in as they scroll into view.
-function useScrollReveal() {
+// Pass `key` to re-run when the page's content changes (e.g. a new project slug).
+function useScrollReveal(key) {
   useEffect(() => {
     const els = document.querySelectorAll("[data-reveal]");
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -56,7 +57,7 @@ function useScrollReveal() {
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [key]);
 }
 
 /* ---------- 02 Perspective (outcome cards) ---------- */
@@ -281,9 +282,16 @@ export function Services() {
     }
     const start = performance.now();
     const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    let expected = from;
     const tick = (now) => {
+      // The user scrolled during the glide: stop and let them take over.
+      if (Math.abs(window.scrollY - expected) > 2) {
+        scrollAnim.current = 0;
+        return;
+      }
       const t = Math.min(1, (now - start) / duration);
-      window.scrollTo({ top: from + (to - from) * ease(t), behavior: "instant" });
+      expected = Math.round(from + (to - from) * ease(t));
+      window.scrollTo({ top: expected, behavior: "instant" });
       if (t < 1) scrollAnim.current = requestAnimationFrame(tick);
       else scrollAnim.current = 0;
     };
@@ -616,13 +624,6 @@ export function Contact() {
 
 /* ---------- Footer ---------- */
 
-const FOOTER_LINKS = [
-  { label: "Home", href: "#top" },
-  { label: "Services", href: "#services" },
-  { label: "Work", href: "#work" },
-  { label: "About", href: "#about" },
-  { label: "Contact", href: "#contact" },
-];
 
 export function Footer() {
   return (
@@ -634,7 +635,7 @@ export function Footer() {
           <p className="footer-muted">Brand Strategy • Creative • Digital</p>
         </div>
         <nav className="footer-nav" aria-label="Footer">
-          {FOOTER_LINKS.map((link) => (
+          {NAV_LINKS.map((link) => (
             <a key={link.href} href={link.href}>{link.label}</a>
           ))}
         </nav>
