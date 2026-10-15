@@ -499,30 +499,66 @@ export function Collaboration() {
 
 const SUPPORT_OPTIONS = [...SERVICES.map((s) => s.name), "Not sure yet"];
 
-function ContactForm() {
-  const [sent, setSent] = useState(false);
+// Enquiries are collected by Netlify Forms (form "enquiry"; a hidden copy in index.html lets
+// Netlify detect it at deploy). Netlify emails each one to the team: set the address in
+// Netlify → Site configuration → Forms → Form notifications.
+const LEADS_EMAIL = "team@optimaaya.com";
 
-  // No form backend yet: compose the enquiry in the visitor's email app.
-  const onSubmit = (event) => {
+function ContactForm() {
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | error
+
+  const onSubmit = async (event) => {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const lines = [
-      `Name: ${data.get("name")}`,
-      `Email: ${data.get("email")}`,
-      `Company or brand: ${data.get("company")}`,
-      `Support with: ${data.get("support")}`,
-      data.get("budget") && `Budget range: ${data.get("budget")}`,
-      data.get("timeline") && `Preferred timeline: ${data.get("timeline")}`,
-      "",
-      data.get("message"),
-    ].filter((line) => line !== null && line !== false);
-    const subject = `Enquiry from ${data.get("name")}`;
-    window.location.href = `mailto:${EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines.join("\n"))}`;
-    setSent(true);
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    data.set("subject", `New enquiry from ${data.get("name")}`);
+    setStatus("sending");
+    try {
+      const res = await fetch("/", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(data).toString(),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      form.reset();
+      setStatus("sent");
+    } catch {
+      setStatus("error");
+    }
   };
 
+  if (status === "sent") {
+    return (
+      <div className="contact-form contact-form--done" role="status" data-reveal>
+        <p className="contact-form-title">Thank you, we’ve got it.</p>
+        <p className="contact-done-text">
+          Your enquiry is with our team. We’ll read it properly and get back to you soon.
+        </p>
+        <button type="button" className="btn btn-ghost contact-again" onClick={() => setStatus("idle")}>
+          Send another enquiry
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <form className="contact-form" onSubmit={onSubmit} data-reveal>
+    <form
+      className="contact-form"
+      name="enquiry"
+      method="POST"
+      data-netlify="true"
+      netlify-honeypot="bot-field"
+      onSubmit={onSubmit}
+      data-reveal
+    >
+      <input type="hidden" name="form-name" value="enquiry" />
+      <input type="hidden" name="subject" value="New enquiry" />
+      {/* Spam trap: hidden from people, filled in by bots */}
+      <p className="contact-honeypot" aria-hidden="true">
+        <label>
+          Leave this empty <input name="bot-field" tabIndex={-1} autoComplete="off" />
+        </label>
+      </p>
       <p className="contact-form-title">Let’s talk</p>
       <label>
         <span>Your name</span>
@@ -564,13 +600,13 @@ function ContactForm() {
           <input name="timeline" />
         </label>
       </div>
-      <button type="submit" className="btn btn-primary contact-submit">
-        Send enquiry <span aria-hidden="true">→</span>
+      <button type="submit" className="btn btn-primary contact-submit" disabled={status === "sending"}>
+        {status === "sending" ? "Sending…" : "Send enquiry"} <span aria-hidden="true">→</span>
       </button>
-      {sent && (
-        <p className="contact-status" role="status">
-          Your email app should open with your enquiry. If it doesn’t, write to us at{" "}
-          <a href={`mailto:${EMAIL}`}>{EMAIL}</a>.
+      {status === "error" && (
+        <p className="contact-status contact-status--error" role="alert">
+          Something went wrong and your enquiry wasn’t sent. Please try again, or email us at{" "}
+          <a href={`mailto:${LEADS_EMAIL}`}>{LEADS_EMAIL}</a>.
         </p>
       )}
     </form>
