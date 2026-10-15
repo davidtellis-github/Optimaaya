@@ -103,7 +103,7 @@ html {
 .panel-grid span:last-child { border-right: 1px solid rgba(255, 250, 235, 0.06); }
 
 /* ---------- 02 Perspective (outcome cards) ---------- */
-.perspective { padding-top: calc(var(--space) * 4); }
+.perspective { padding-top: calc(var(--space) * 7); }
 /* Pulled up into the empty space under the Work carousel (~120px below it) */
 .work + .perspective {
   margin-top: calc(var(--space) * -24.5);
