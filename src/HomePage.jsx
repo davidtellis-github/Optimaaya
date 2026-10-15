@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import Hero from "./Hero";
 import WorkSection from "./WorkSection";
+import { SHOW_WORK } from "./features";
 import {
   Collaboration,
   Contact,
@@ -30,7 +31,7 @@ export default function HomePage() {
   return (
     <>
       <Hero />
-      <WorkSection />
+      {SHOW_WORK && <WorkSection />}
       <Perspective />
       <Services />
       <Process />

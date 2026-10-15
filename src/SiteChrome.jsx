@@ -1,5 +1,6 @@
 import { useState } from "react";
 import logo from "./assests/LOgo.svg";
+import { SHOW_WORK } from "./features";
 
 // Shared across the home page and project pages. Links point at "/#section" so they
 // work from any route (a full load of the home page, then a jump to the section).
@@ -9,7 +10,7 @@ export const NAV_LINKS = [
   { label: "Work", href: "/#work" },
   { label: "About", href: "/#about" },
   { label: "Contact", href: "/#contact" },
-];
+].filter((link) => SHOW_WORK || link.label !== "Work");
 
 export function GridOverlay() {
   return (

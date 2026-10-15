@@ -599,7 +599,7 @@ export function Contact() {
         <div className="contact-intro">
           <SectionLabel index="06">Contact</SectionLabel>
           <h2 id="contact-title" className="section-title contact-title" data-reveal>
-            What’s next for your brand?
+            If you have reached this far, we should talk.
           </h2>
           <p className="section-lede" data-reveal>
             Tell us where you are, what you’re working towards and where you need support. You

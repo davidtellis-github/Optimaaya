@@ -103,8 +103,9 @@ html {
 .panel-grid span:last-child { border-right: 1px solid rgba(255, 250, 235, 0.06); }
 
 /* ---------- 02 Perspective (outcome cards) ---------- */
-.perspective {
-  /* Pulled up into the empty space under the Work carousel (~120px below it) */
+.perspective { padding-top: calc(var(--space) * 4); }
+/* Pulled up into the empty space under the Work carousel (~120px below it) */
+.work + .perspective {
   margin-top: calc(var(--space) * -24.5);
   padding-top: 0;
 }
@@ -677,7 +678,7 @@ html {
   .footer-contact,
   .footer-bottom p { grid-column: 1 / -1; }
 
-  .perspective { margin-top: calc(var(--space) * -2); }
+  .work + .perspective { margin-top: calc(var(--space) * -2); }
   .persp-top { grid-template-columns: 1fr; align-items: start; }
   .persp-cards { grid-template-columns: 1fr; margin-top: calc(var(--space) * 2); }
   .persp-card h3 { min-height: 0; }
