@@ -499,10 +499,10 @@ export function Collaboration() {
 
 const SUPPORT_OPTIONS = [...SERVICES.map((s) => s.name), "Not sure yet"];
 
-// Enquiries are collected by Netlify Forms (form "enquiry"; a hidden copy in index.html lets
-// Netlify detect it at deploy). Netlify emails each one to the team: set the address in
-// Netlify → Site configuration → Forms → Form notifications.
+// Enquiries are emailed to the team by FormSubmit (formsubmit.co). The very first submission
+// sends an activation email to LEADS_EMAIL; enquiries arrive only after it's confirmed.
 const LEADS_EMAIL = "team@optimaaya.com";
+const FORM_ENDPOINT = `https://formsubmit.co/ajax/${LEADS_EMAIL}`;
 
 function ContactForm() {
   const [status, setStatus] = useState("idle"); // idle | sending | sent | error
@@ -510,16 +510,18 @@ function ContactForm() {
   const onSubmit = async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
-    const data = new FormData(form);
-    data.set("subject", `New enquiry from ${data.get("name")}`);
+    const data = Object.fromEntries(new FormData(form));
+    if (data._honey) return; // spam trap filled: silently drop
+    data._subject = `New enquiry from ${data.name}`;
     setStatus("sending");
     try {
-      const res = await fetch("/", {
+      const res = await fetch(FORM_ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams(data).toString(),
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || String(json.success) !== "true") throw new Error(json.message || `HTTP ${res.status}`);
       form.reset();
       setStatus("sent");
     } catch {
@@ -542,21 +544,13 @@ function ContactForm() {
   }
 
   return (
-    <form
-      className="contact-form"
-      name="enquiry"
-      method="POST"
-      data-netlify="true"
-      netlify-honeypot="bot-field"
-      onSubmit={onSubmit}
-      data-reveal
-    >
-      <input type="hidden" name="form-name" value="enquiry" />
-      <input type="hidden" name="subject" value="New enquiry" />
+    <form className="contact-form" onSubmit={onSubmit} data-reveal>
+      <input type="hidden" name="_template" value="table" />
+      <input type="hidden" name="_captcha" value="false" />
       {/* Spam trap: hidden from people, filled in by bots */}
       <p className="contact-honeypot" aria-hidden="true">
         <label>
-          Leave this empty <input name="bot-field" tabIndex={-1} autoComplete="off" />
+          Leave this empty <input name="_honey" tabIndex={-1} autoComplete="off" />
         </label>
       </p>
       <p className="contact-form-title">Let’s talk</p>
