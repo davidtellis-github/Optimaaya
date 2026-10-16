@@ -30,24 +30,28 @@ function Logo() {
   );
 }
 
-// Fixed glass nav. `menuOpen` lives with the caller so the page wrapper can carry
-// the .menu-open class the mobile menu styles key off.
+// Fixed nav: links split either side of a centred logo, hairline underneath.
+// `menuOpen` lives with the caller so the page wrapper can carry the .menu-open class
+// the mobile menu styles key off.
 export function SiteNav({ menuOpen, setMenuOpen }) {
+  const half = Math.ceil(NAV_LINKS.length / 2);
+  const close = () => setMenuOpen(false);
+  const links = (list) =>
+    list.map((link) => (
+      <a key={link.href} href={link.href} onClick={close}>
+        {link.label}
+      </a>
+    ));
+
   return (
     <header className="nav">
-      <Logo />
-
-      <nav className="nav-links" aria-label="Primary">
-        {NAV_LINKS.map((link) => (
-          <a key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>
-            {link.label}
-          </a>
-        ))}
+      <nav className="nav-group nav-group--left" aria-label="Primary">
+        {links(NAV_LINKS.slice(0, half))}
       </nav>
-
-      <div className="nav-actions">
-        <a href="/#contact" className="btn btn-dark">Let’s talk</a>
-      </div>
+      <Logo />
+      <nav className="nav-group nav-group--right" aria-label="Secondary">
+        {links(NAV_LINKS.slice(half))}
+      </nav>
 
       <button
         className="menu-toggle"
@@ -58,6 +62,10 @@ export function SiteNav({ menuOpen, setMenuOpen }) {
         <span />
         <span />
       </button>
+      {/* Phones: every link in one dropdown */}
+      <nav className="nav-links" aria-label="Menu">
+        {links(NAV_LINKS)}
+      </nav>
     </header>
   );
 }
