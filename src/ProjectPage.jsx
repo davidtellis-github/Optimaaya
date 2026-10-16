@@ -2,6 +2,7 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { GridOverlay, SiteNav, useMenu } from "./SiteChrome";
 import { Footer, useScrollReveal } from "./HomeSections";
 import { PROJECTS, projectBySlug } from "./projects";
+import { SHOW_WORK } from "./features";
 import "./ProjectPage.css";
 
 // Thin line icons for the "What we delivered" cards (64×64, 1px strokes), cycled by index.
@@ -38,7 +39,7 @@ function ProjectHero({ project }) {
   return (
     <header className="pj-hero grid12">
       <nav className="pj-crumbs" aria-label="Breadcrumb" data-reveal>
-        <a href="/#work" className="pj-back">
+        <a href={SHOW_WORK ? "/#work" : "/#top"} className="pj-back">
           <span aria-hidden="true">←</span> All work
         </a>
         <span aria-hidden="true">/</span>

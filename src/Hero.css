@@ -252,43 +252,44 @@ a { color: inherit; text-decoration: none; }
 }
 .headline em { font-style: normal; color: var(--accent-ink); }
 
-/* Round arrow button set into the headline, as in the reference */
-.hero-circle {
-  display: inline-grid;
-  place-items: center;
-  width: 0.78em;
-  height: 0.78em;
-  vertical-align: 0.02em;
-  border: 2px solid var(--ink);
-  border-radius: 50%;
-  font-size: 0.8em;
-  color: var(--ink);
-  transition: background 0.4s var(--ease), color 0.4s var(--ease);
-}
-.hero-circle span { font-size: 0.42em; line-height: 1; }
-.hero-circle:hover { background: var(--ink); color: var(--bg); }
-
 .hero-work {
-  display: grid;
-  grid-template-columns: repeat(var(--grid-columns), 1fr);
-  padding-top: calc(var(--space) * 1.5);
+  margin-top: calc(var(--space) * 1.5);
+  overflow: hidden;
 }
-.hero-card { display: flex; flex-direction: column; gap: calc(var(--space) * 0.75); }
-.hero-card--left { grid-column: 1 / 7; padding-right: calc(var(--space) / 2); }
-.hero-card--right { grid-column: 7 / 13; padding-left: calc(var(--space) / 2); }
+/* Two copies of the list; moving by one copy (+ one gap) loops seamlessly */
+.hero-track {
+  --card-gap: var(--space);
+  display: flex;
+  gap: var(--card-gap);
+  width: max-content;
+  animation: hero-marquee calc(var(--count) * 9s) linear infinite;
+}
+.hero-work:hover .hero-track { animation-play-state: paused; }
+@keyframes hero-marquee {
+  to { transform: translateX(calc(-50% - var(--card-gap) / 2)); }
+}
+.hero-card {
+  display: flex;
+  flex: 0 0 clamp(280px, 40vw, 600px);
+  flex-direction: column;
+  gap: calc(var(--space) * 0.75);
+  color: inherit;
+}
 
 .hero-tags {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* one line, so every card's image starts at the same height */
+  overflow: hidden;
   gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.hero-card--right .hero-tags { justify-content: flex-end; }
 .hero-tags li {
   padding: 8px 14px;
   border-radius: 2px;
+  flex: none;
+  white-space: nowrap;
   background: #EFEEEA;
   font-size: 12.5px;
   font-weight: 500;
@@ -306,7 +307,7 @@ a { color: inherit; text-decoration: none; }
 .hero-card img {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 11;
+  aspect-ratio: 4 / 3;
   object-fit: cover;
   transition: transform 1.2s var(--ease);
 }
@@ -378,10 +379,8 @@ a { color: inherit; text-decoration: none; }
     grid-row: 2;
     padding: 0 0 calc(var(--space) * 2);
   }
-  .hero-card--left,
-  .hero-card--right { grid-column: 1 / -1; padding: 0; }
-  .hero-card--right { margin-top: calc(var(--space) * 1.5); }
-  .hero-card--right .hero-tags { justify-content: flex-start; }
+  .hero-card { flex-basis: 78vw; }
+  .hero-tags li { padding: 7px 10px; font-size: 11px; }
 
   .menu-open .nav-links {
     display: flex;
@@ -405,4 +404,8 @@ a { color: inherit; text-decoration: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .reveal { animation: none; opacity: 1; transform: none; }
+  /* No auto-scroll: let people swipe/scroll the strip themselves, without the loop copy */
+  .hero-track { animation: none; }
+  .hero-work { overflow-x: auto; }
+  .hero-card[aria-hidden="true"] { display: none; }
 }

@@ -7,7 +7,7 @@ import "./Hero.css";
 import "./HomeSections.css";
 import HomePage from "./HomePage";
 import ProjectPage from "./ProjectPage";
-import { SHOW_WORK } from "./features";
+import { SHOW_PROJECTS } from "./features";
 
 // New route -> start at the top (hash links on the home page are left to the browser).
 function ScrollToTop() {
@@ -24,7 +24,7 @@ createRoot(document.getElementById("root")).render(
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<HomePage />} />
-        {SHOW_WORK && <Route path="/work/:slug" element={<ProjectPage />} />}
+        {SHOW_PROJECTS && <Route path="/work/:slug" element={<ProjectPage />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

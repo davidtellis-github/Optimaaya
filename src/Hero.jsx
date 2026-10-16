@@ -1,12 +1,16 @@
 import { GridOverlay, SiteNav, useMenu } from "./SiteChrome";
+import { Link } from "react-router-dom";
+import { PROJECTS } from "./projects";
+import { SHOW_PROJECTS } from "./features";
 
-// Placeholder photos (Unsplash) until there's campaign imagery for the hero.
-const photo = (id) => `https://images.unsplash.com/photo-${id}?w=1400&h=1000&q=80&auto=format&fit=crop`;
-
-const HERO_CARDS = [
-  { tags: ["Brand & Creative", "Social & Influence"], src: photo("1527630941-4a229fd674ab") },
-  { tags: ["Performance Marketing", "Websites & Digital"], src: photo("1581892805885-73bdd91beff0") },
-];
+// Every project, looping right-to-left. The list is rendered twice so the strip can
+// scroll by exactly one copy and restart without a visible jump.
+const HERO_CARDS = PROJECTS.map((p) => ({
+  slug: p.slug,
+  title: p.title,
+  src: p.src,
+  tags: p.tags.slice(0, 2),
+}));
 
 export default function Hero() {
   const [menuOpen, setMenuOpen] = useMenu();
@@ -33,28 +37,44 @@ export default function Hero() {
 
               <div className="hero-title">
                 <h1 className="headline reveal" style={{ "--d": 0 }}>
-                  We make brands{" "}
-                  <a href="#perspective" className="hero-circle" aria-label="Scroll to learn more">
-                    <span aria-hidden="true">↳</span>
-                  </a>{" "}
-                  understood, desired and <em>optimised.</em>
+                  We make your brand understood, desired and <em>optimised.</em>
                 </h1>
               </div>
             </div>
 
-            <div className="hero-work">
-              {HERO_CARDS.map((card, i) => (
-                <div key={card.src} className={`hero-card hero-card--${i ? "right" : "left"} reveal`} style={{ "--d": 2 + i }}>
-                  <ul className="hero-tags">
-                    {card.tags.map((tag) => (
-                      <li key={tag}>{tag}</li>
-                    ))}
-                  </ul>
-                  <figure>
-                    <img src={card.src} alt="" />
-                  </figure>
-                </div>
-              ))}
+            <div className="hero-work reveal" style={{ "--d": 2 }} aria-label="Selected projects">
+              <div className="hero-track" style={{ "--count": HERO_CARDS.length }}>
+                {[...HERO_CARDS, ...HERO_CARDS].map((card, i) => {
+                  const copy = i >= HERO_CARDS.length;
+                  const body = (
+                    <>
+                      <ul className="hero-tags">
+                        {card.tags.map((tag) => (
+                          <li key={tag}>{tag}</li>
+                        ))}
+                      </ul>
+                      <figure>
+                        <img src={card.src} alt={copy ? "" : `${card.title} project`} />
+                      </figure>
+                    </>
+                  );
+                  return SHOW_PROJECTS ? (
+                    <Link
+                      key={i}
+                      to={`/work/${card.slug}`}
+                      className="hero-card"
+                      aria-hidden={copy || undefined}
+                      tabIndex={copy ? -1 : undefined}
+                    >
+                      {body}
+                    </Link>
+                  ) : (
+                    <div key={i} className="hero-card" aria-hidden={copy || undefined}>
+                      {body}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </section>
         </main>
